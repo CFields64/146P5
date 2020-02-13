@@ -41,6 +41,44 @@ def make_checker(rule):
     def check(state):
         # This code is called by graph(state) and runs millions of times.
         # Tip: Do something with rule['Consumes'] and rule['Requires'].
+        if 'Requires' in rule and 'Consumes' in rule:
+            # Check if the state contains the required permanent items.
+            for requirement in rule['Requires']:
+                print(requirement)
+                if state.get(requirement) == 0:
+                    return False
+            # Check if the state contains the required consumables.
+            for resource in rule['Consumes']:
+                amount = rule['Consumes'].get(resource)
+                print(resource, amount)
+                if state.get(resource) == 0:
+                    return False
+                else:
+                    # Make sure state has enough of required consumables.
+                    if amount > state.get(resource):
+                        print(state.get(resource))
+                        return False
+
+        elif 'Consumes' in rule and not 'Requires' in rule:
+            # Check if the state contains the required consumables.
+            for resource in rule['Consumes']:
+                amount = rule['Consumes'].get(resource)
+                print(resource, amount)
+                if state.get(resource) == 0:
+                    return False
+                else:
+                    # Make sure state has enough of required consumables.
+                    if amount > state.get(resource):
+                        print(rule.get(resource))
+                        return False
+
+        elif 'Requires' in rule and not 'Consumes' in rule:
+            # Check if the state contains the required permanent items.
+            for requirement in rule['Requires']:
+                print(requirement)
+                if state.get(requirement) == 0:
+                    return False
+
         return True
 
     return check
@@ -55,6 +93,22 @@ def make_effector(rule):
         # This code is called by graph(state) and runs millions of times
         # Tip: Do something with rule['Produces'] and rule['Consumes'].
         next_state = None
+
+        if 'Consumes' in rule:
+            # Modify state to remove consumed resources and add produced item.
+            next_state = state.copy()
+            for consumable in rule['Consumes']:
+                amount_used = rule['Consumes'].get(consumable)
+                current_amount = state.get(consumable)
+                next_state[consumable] = current_amount - amount_used
+            for new_item in rule['Produces']:
+                next_state[new_item] = rule['Produces'].get(new_item)
+        else:
+            # Modify state to only add produced item.
+            next_state = state.copy()
+            for new_item in rule['Produces']:
+                next_state[new_item] = rule['Produces'].get(new_item)
+
         return next_state
 
     return effect
@@ -66,7 +120,10 @@ def make_goal_checker(goal):
 
     def is_goal(state):
         # This code is used in the search process and may be called millions of times.
-        return False
+        for g in goal:
+            if state.get(g) == 0:
+                return False
+        return True
 
     return is_goal
 
@@ -76,7 +133,9 @@ def graph(state):
     # If a rule is valid, it returns the rule's name, the resulting state after application
     # to the given state, and the cost for the rule.
     for r in all_recipes:
+        print(r.name)
         if r.check(state):
+            print(r.name)
             yield (r.name, r.effect(state), r.cost)
 
 
@@ -93,7 +152,7 @@ def search(graph, state, is_goal, limit, heuristic):
     # representing the path. Each element (tuple) of the list represents a state
     # in the path and the action that took you to this state
     while time() - start_time < limit:
-        pass
+        print(state)
 
     # Failed to find a path
     print(time() - start_time, 'seconds.')
